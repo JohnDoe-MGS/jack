@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cartografia do Arquiteto Reflexivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Abismo Iluminado (Dark High Contrast) -->
+    <!-- Application Structure Plan: A estrutura de SPA foi mantida e aprofundada. O principal avanço é a reescrita total para o infinitivo, transformando o tom de passivo para ativo. A interatividade foi massivamente expandida, com mais modais explicativos e análises detalhadas em secções-chave ("A Mente", "A Arena"), para encorajar uma exploração mais profunda e analítica pelo utilizador. -->
+    <!-- Visualization & Content Choices: Foram adicionados múltiplos 'concept-triggers' para modais em conceitos como Campo, Capital, Doxa e Alopoiese. Secções inteiras foram reestruturadas para serem mais interativas (ex: Teoria do Sinal). As descrições foram expandidas para fornecer mais análise, conforme solicitado. A paleta de cores foi ajustada para destacar áreas específicas (tabela, aviso). -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1A202C;
+            color: #E2E8F0;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+            color: #A0AEC0;
+        }
+        .nav-link.active {
+            border-bottom-color: #63B3ED;
+            color: #63B3ED;
+        }
+        .nav-link:hover {
+            color: #FFFFFF;
+        }
+        .content-section {
+            display: none;
+            animation: fadeIn 0.8s;
+        }
+        .content-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        .card-base {
+             background-color: #2D3748;
+             border: 1px solid #4A5568;
+        }
+        .interactive-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .interactive-card .details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .interactive-card.open {
+            background-color: #4A5568;
+            border-color: #63B3ED;
+        }
+        .interactive-card.open .details {
+            max-height: 1000px;
+        }
+        .interactive-card:hover {
+            transform: translateY(-4px);
+            border-color: #A0AEC0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+        }
+        .concept-trigger {
+            display: inline-block;
+            background-color: rgba(99, 179, 237, 0.1);
+            border: 1px solid rgba(99, 179, 237, 0.2);
+            padding: 2px 8px;
+            border-radius: 6px;
+            line-height: 1.5;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            color: #90cdf4; /* Light Blue */
+        }
+        .concept-trigger:hover {
+            background-color: rgba(246, 173, 85, 0.2);
+            border-color: rgba(246, 173, 85, 0.5);
+            color: #F6AD55;
+        }
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        #modal-container {
+            background-color: #2D3748;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            border: 1px solid #4A5568;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        #modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: #A0AEC0;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .interactive-notice {
+            transition: opacity 0.5s, transform 0.5s;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div id="modal-overlay">
+        <div id="modal-container">
+            <button id="modal-close">&times;</button>
+            <h3 id="modal-title" class="text-2xl font-bold mb-4 text-[#63B3ED]"></h3>
+            <div id="modal-body" class="text-gray-300 leading-relaxed"></div>
+        </div>
+    </div>
+
+    <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">Cartografia do Arquiteto Reflexivo</h1>
+            <p class="mt-2 text-lg text-gray-400 max-w-3xl mx-auto">Uma exploração interativa do perfil, motivações e estruturas de pensamento de <i class="italic">Jack</i>.</p>
+        </header>
+
+        <div id="interactive-notice-container" class="mb-8">
+            <div class="interactive-notice bg-yellow-400/10 border border-yellow-500/20 p-4 rounded-lg flex items-center justify-between shadow-lg">
+                <p class="text-sm sm:text-base text-yellow-300">💡 <strong class="font-bold">Aviso Interativo:</strong> Este painel é dinâmico. Clicar nos <span class="concept-trigger">termos em caixas</span> e em vários elementos irá revelar mais informações. Usar as abas para navegar.</p>
+                <button id="dismiss-notice" class="text-yellow-300 hover:text-white text-xl">&times;</button>
+            </div>
+        </div>
+
+        <nav class="flex justify-center items-center border-b-2 border-gray-700 mb-8 flex-wrap">
+            <a href="#" data-target="sobre" class="nav-link text-sm sm:text-base font-semibold py-4 px-3 sm:px-6">Sobre o Projeto</a>
+            <a href="#" data-target="visao-geral" class="nav-link active text-sm sm:text-base font-semibold py-4 px-3 sm:px-6">Visão Geral</a>
+            <a href="#" data-target="a-mente" class="nav-link text-sm sm:text-base font-semibold py-4 px-3 sm:px-6">A Mente</a>
+            <a href="#" data-target="o-eu" class="nav-link text-sm sm:text-base font-semibold py-4 px-3 sm:px-6">O Eu</a>
+            <a href="#" data-target="a-arena" class="nav-link text-sm sm:text-base font-semibold py-4 px-3 sm:px-6">A Arena</a>
+            <a href="#" data-target="sintese" class="nav-link text-sm sm:text-base font-semibold py-4 px-3 sm:px-6">Síntese</a>
+        </nav>
+
+        <main>
+             <section id="sobre" class="content-section">
+                <div class="card-base p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold text-center mb-6 text-white">Sobre Este Projeto: Uma Metarreflexão</h2>
+                    <div class="space-y-4 text-gray-300 leading-relaxed text-justify">
+                        <p>Esta aplicação serve como resultado de um exercício de autorreflexão de <i class="italic">Jack</i>, mediado por inteligência artificial. O objetivo de <i class="italic">Jack</i> não foi simplesmente obter um diagnóstico, mas sim utilizar a capacidade analítica de um modelo de linguagem para mapear as suas próprias estruturas de pensamento e motivações, considerando a sua experiência vivida e os desafios de saúde mental.</p>
+                        <p>A metodologia envolveu fornecer um corpus de solicitações e informações pessoais ao sistema, pedindo-lhe para agir como um analista e inferir um perfil. O sistema, por sua vez, sintetizou essa informação, identificando conceitos que pareciam explicar os padrões observados. Este painel é a visualização dessa análise.</p>
+                        <p><strong class="font-bold">Como interagir:</strong></p>
+                        <ul class="list-disc list-inside space-y-2 pl-4">
+                            <li>Navegar pelas abas (Visão Geral, A Mente, etc.) para explorar diferentes facetas da análise.</li>
+                            <li>Encontrar <span class="concept-trigger">termos em caixas</span>. Estes são conceitos-chave. Clicar neles para abrir uma janela com a sua definição.</li>
+                            <li>Expandir muitos dos cartões para revelar mais detalhes.</li>
+                        </ul>
+                         <p class="mt-4">O resultado pretende ser uma "cartografia da mente" — um mapa para iluminar o terreno, permitindo a <i class="italic">Jack</i> navegar com maior autoconsciência. É um convite para explorar o complexo diálogo entre o eu e o mundo.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="visao-geral" class="content-section active">
+                <div class="card-base p-6 rounded-xl shadow-lg mb-8">
+                    <h2 class="text-2xl font-bold text-center mb-4 text-white">A Dialética do Ser e do Fazer</h2>
+                    <p class="text-gray-300 leading-relaxed text-justify">Identificar no cerne deste perfil uma tensão produtiva entre o <strong class="font-bold text-[#F6AD55]">Fazer</strong> (a abordagem pragmática ao mundo profissional) e o <strong class="font-bold text-[#4FD1C5]">Ser</strong> (a busca existencial por autenticidade). Desta tensão, emerge a figura do <strong class="font-bold">Arquiteto Reflexivo</strong>, um indivíduo que procura construir conscientemente a sua vida, estudando os projetos (<span class="concept-trigger" data-concept="filosofia">filosofia</span>, <span class="concept-trigger" data-concept="psicologia">psicologia</span>) com o mesmo rigor com que utiliza as suas ferramentas (estratégias de carreira).</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                    <div class="card-base p-6 rounded-xl shadow-lg text-center flex flex-col justify-center h-full">
+                        <h3 class="text-xl font-bold text-white mb-4">A Tensão Central</h3>
+                        <div class="flex items-center justify-around text-white"><div class="bg-[#F6AD55] text-gray-900 p-6 rounded-lg w-2/5 shadow-lg"><h4 class="font-bold text-lg">FAZER</h4><p class="text-sm">Estratégia</p><p class="text-sm">Ação</p><p class="text-sm">Otimização</p></div><div class="text-2xl font-bold text-white">&harr;</div><div class="bg-[#4FD1C5] text-gray-900 p-6 rounded-lg w-2/5 shadow-lg"><h4 class="font-bold text-lg">SER</h4><p class="text-sm">Significado</p><p class="text-sm">Autenticidade</p><p class="text-sm">Valores</p></div></div>
+                         <p class="text-gray-400 mt-6 text-sm">Entender esta dualidade não como uma contradição, mas como uma relação simbiótica. A necessidade prática alimenta a busca por significado, e a investigação filosófica refina a estratégia.</p>
+                    </div>
+                    <div class="card-base p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-bold text-center text-white mb-4">Analisar o Perfil de Personalidade (<span class="concept-trigger" data-concept="big-five">Big Five</span>)</h3>
+                        <div class="chart-container"><canvas id="bigFiveChart"></canvas></div>
+                         <div class="interactive-card mt-4" onclick="this.classList.toggle('open')">
+                            <p class="text-gray-400 text-center text-sm font-semibold">Explicar a assinatura de personalidade. (Clique para expandir)</p>
+                            <div class="details mt-2 text-sm text-gray-400 text-justify">
+                                A análise aponta para uma combinação invulgar de pontuações muito elevadas em <strong class="font-bold">Conscienciosidade</strong> e <strong class="font-bold">Abertura à Experiência</strong>. A Conscienciosidade é o motor do "Fazer": impulsionar a disciplina, o planeamento e a execução focada em objetivos. A Abertura é o motor do "Ser": alimentar a curiosidade, a criatividade e a exploração de ideias abstratas. Ter ambos os traços em níveis elevados significa possuir a capacidade rara de, simultaneamente, idealizar sistemas complexos e inovadores (Abertura) e ter o foco e a disciplina para os construir e implementar metodicamente no mundo real (Conscienciosidade).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="a-mente" class="content-section">
+                <div class="card-base p-6 rounded-xl shadow-lg mb-8">
+                     <h2 class="text-xl font-bold text-center mb-4 text-white">A Mente: O Arquiteto Estratégico</h2>
+                     <p class="text-gray-300 leading-relaxed text-justify">O propósito desta secção é explorar o "sistema operativo" mental do Arquiteto Reflexivo. Analisar como <i class="italic">Jack</i> aborda o mundo com pragmatismo e quais os motores cognitivos que impulsionam este comportamento. É o ponto de encontro entre a estratégia e a curiosidade para formar uma abordagem única e altamente analítica.</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="card-base p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-bold text-center text-white mb-6">Construir a Estratégia Profissional</h3>
+                        <div class="space-y-4">
+                            <div class="interactive-card card-base p-4 rounded-lg" onclick="this.classList.toggle('open')"><h4 class="font-semibold text-gray-200">Tratar o Documento Profissional como um Sinal</h4><div class="details mt-2 text-sm text-gray-400">Analisar o histórico profissional não como um mero registo, mas como um instrumento de comunicação estratégica. O objetivo é projetar valor de forma deliberada num mercado com informação imperfeita, otimizando-o tanto para sistemas de triagem (ATS) como para o impacto psicológico no recrutador.</div></div>
+                             <div class="interactive-card card-base p-4 rounded-lg" onclick="this.classList.toggle('open')"><h4 class="font-semibold text-gray-200">Quantificar o Valor Gerado</h4><div class="details mt-2 text-sm text-gray-400">Insistir na tradução de todas as experiências e responsabilidades em métricas de impacto (KPIs, ROI, percentagens). Esta abordagem visa substituir a subjetividade por provas concretas, construindo um caso de negócio para a própria contratação e demonstrando um foco inequívoco em resultados.</div></div>
+                             <div class="interactive-card card-base p-4 rounded-lg" onclick="this.classList.toggle('open')"><h4 class="font-semibold text-gray-200">Aplicar Engenharia Reversa ao Recrutador</h4><div class="details mt-2 text-sm text-gray-400">Esforçar-se para decifrar a estrutura cognitiva e os critérios de avaliação do recrutador. Esta análise permite antecipar dúvidas, neutralizar proativamente "red flags" (como lacunas ou mudanças de emprego) e controlar a narrativa, em vez de reagir a ela.</div></div>
+                            <div class="interactive-card card-base p-4 rounded-lg" onclick="this.classList.toggle('open')"><h4 class="font-semibold text-gray-200">Adotar a Customização como Norma</h4><div class="details mt-2 text-sm text-gray-400">Rejeitar a abordagem genérica e tratar cada candidatura como uma campanha de marketing única. O objetivo é adaptar minuciosamente a narrativa profissional para cada vaga específica, maximizando a percepção de relevância e alinhamento com as necessidades do empregador.</div></div>
+                        </div>
+                    </div>
+                    <div class="card-base p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-bold text-center text-white mb-6">Mapear a Assinatura Cognitiva</h3>
+                         <div class="text-center mb-6">
+                            <h4 class="font-semibold text-lg text-white"><span class="concept-trigger" data-concept="nfc">Necessidade de Cognição (NFC)</span></h4>
+                            <div class="w-full bg-gray-700 rounded-full h-4 mt-2"><div class="bg-gradient-to-r from-purple-500 to-indigo-600 h-4 rounded-full" style="width: 95%"></div></div>
+                            <p class="text-xs text-gray-500 mt-2">Legenda: Nível de propensão para o pensamento profundo e analítico.</p>
+                            <p class="text-sm text-gray-400 mt-2">Evidenciar uma elevada tendência para se envolver e sentir prazer em atividades cognitivas que exigem esforço.</p>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="font-semibold text-lg text-white mb-4"><span class="concept-trigger" data-concept="curiosidade">Curiosidade Epistêmica</span>: O Duplo Motor</h4>
+                            <div class="chart-container h-48 sm:h-56"><canvas id="curiosityChart"></canvas></div>
+                             <p class="text-sm text-gray-400 mt-4">Ser impulsionado tanto pelo <strong class="font-bold text-[#4FD1C5]">prazer da descoberta (Tipo Interesse)</strong> como pela <strong class="font-bold text-[#F6AD55]">necessidade de resolver incertezas (Tipo Privação)</strong>.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="o-eu" class="content-section">
+                <div class="card-base p-6 rounded-xl shadow-lg mb-8">
+                     <h2 class="text-2xl font-bold text-center mb-4 text-white">O Eu: A Busca Existencial e a Estrutura de Personalidade</h2>
+                     <p class="text-gray-300 leading-relaxed text-justify">O propósito é mergulhar no núcleo motivacional. Entender que as ações pragmáticas podem ser mecanismos de defesa para um projeto mais profundo: a busca por uma vida autêntica num mundo de conformidade. Explorar os conceitos filosóficos e psicológicos que guiam esta jornada, agora contextualizados pela dimensão clínica.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="interactive-card card-base p-5 rounded-lg text-center" onclick="this.classList.toggle('open')"><h4 class="font-bold text-white"><span class="concept-trigger" data-concept="ma-fe">Má-Fé (Sartre)</span></h4><div class="details mt-2 text-sm text-gray-400">Dominar as regras do jogo para não ser definido por elas.</div></div>
+                    <div class="interactive-card card-base p-5 rounded-lg text-center" onclick="this.classList.toggle('open')"><h4 class="font-bold text-white"><span class="concept-trigger" data-concept="dasein">Dasein (Heidegger)</span></h4><div class="details mt-2 text-sm text-gray-400">Arrancar uma existência autêntica da inautenticidade do quotidiano.</div></div>
+                    <div class="interactive-card card-base p-5 rounded-lg text-center" onclick="this.classList.toggle('open')"><h4 class="font-bold text-white"><span class="concept-trigger" data-concept="funcao-transcendente">Função Transcendente (Jung)</span></h4><div class="details mt-2 text-sm text-gray-400">Integrar opostos (razão/emoção) para evoluir a personalidade.</div></div>
+                    <div class="interactive-card card-base p-5 rounded-lg text-center" onclick="this.classList.toggle('open')"><h4 class="font-bold text-white"><span class="concept-trigger" data-concept="moral-pos-convencional">Moral Pós-Convencional</span></h4><div class="details mt-2 text-sm text-gray-400">Guiar as decisões por um código moral interno e princípios universais.</div></div>
+                    <div class="interactive-card card-base p-5 rounded-lg text-center" onclick="this.classList.toggle('open')"><h4 class="font-bold text-white"><span class="concept-trigger" data-concept="he">Hiperexcitabilidades</span></h4><div class="details mt-2 text-sm text-gray-400">Ter uma intensidade inata na resposta a estímulos intelectuais e emocionais.</div></div>
+                     <div class="interactive-card card-base p-5 rounded-lg text-center" onclick="this.classList.toggle('open')"><h4 class="font-bold text-white"><span class="concept-trigger" data-concept="depressao">Depressão Maior (F33.2)</span></h4><div class="details mt-2 text-sm text-gray-400">A lente clínica que recontextualiza a experiência e a motivação interna.</div></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                     <div class="card-base p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-bold text-center text-white mb-4"><span class="concept-trigger" data-concept="he-chart">Hiperexcitabilidades (Dabrowski)</span></h3>
+                        <div class="chart-container"><canvas id="oeChart"></canvas></div>
+                        <p class="text-gray-400 mt-4 text-center text-sm">Demonstrar uma intensidade inata, particularmente nas áreas <strong class="font-bold text-[#4FD1C5]">Intelectual</strong> (apetite por análise) e <strong class="font-bold text-[#F6AD55]">Emocional</strong> (profundidade de sentimentos).</p>
+                    </div>
+                    <div class="card-base p-6 rounded-xl shadow-lg text-center flex flex-col justify-center h-full">
+                        <h3 class="text-xl font-bold text-white mb-4"><span class="concept-trigger" data-concept="assincronia">Desenvolvimento Assíncrono</span></h3>
+                        <div class="space-y-3"><div><span class="font-semibold">Intelecto</span><div class="w-full bg-gray-700 rounded-full h-5"><div class="bg-[#4FD1C5] h-5 rounded-full" style="width: 90%"></div></div></div><div><span class="font-semibold">Socioemocional</span><div class="w-full bg-gray-700 rounded-full h-5"><div class="bg-[#F6AD55] h-5 rounded-full" style="width: 65%"></div></div></div></div>
+                        <p class="text-gray-400 mt-6 text-sm">Compreender que o avanço intelectual pode não ser acompanhado pelo socioemocional, levando a uma sensação de "desfasamento do mundo".</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="a-arena" class="content-section">
+                <div class="card-base p-6 rounded-xl shadow-lg mb-8">
+                    <h2 class="text-2xl font-bold text-center mb-4 text-white">A Arena: Navegar Estruturas de Poder</h2>
+                    <p class="text-gray-300 leading-relaxed text-justify">A busca por autenticidade ocorre numa "arena" — o campo social e económico. O objetivo é examinar a compreensão sofisticada destes sistemas, utilizando teorias como ferramentas para navegar estrategicamente.</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                     <div class="card-base p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-bold text-center text-white mb-4">Analisar o Jogo do "<span class="concept-trigger" data-concept="campo-bourdieu">Campo</span>"</h3>
+                        <p class="text-sm text-gray-400 text-center mb-4">Este conceito de Pierre Bourdieu trata o mundo profissional como uma arena de competição. A importância de o entender reside em decifrar as regras não escritas do poder e do prestígio, permitindo uma participação mais estratégica em vez de reativa.</p>
+                        <div class="space-y-4 text-center">
+                            <div class="p-3 bg-[#1A202C] rounded-lg interactive-card" onclick="event.stopPropagation(); window.openModal('campo');"><h4 class="font-semibold">Campo</h4><p class="text-xs text-gray-500">(Clique para saber mais)</p></div>
+                            <div class="p-3 bg-[#1A202C] rounded-lg interactive-card" onclick="event.stopPropagation(); window.openModal('capital');"><h4 class="font-semibold">Capital</h4><p class="text-xs text-gray-500">(Clique para saber mais)</p></div>
+                            <div class="p-3 bg-[#1A202C] rounded-lg interactive-card" onclick="event.stopPropagation(); window.openModal('doxa');"><h4 class="font-semibold">Doxa</h4><p class="text-xs text-gray-500">(Clique para saber mais)</p></div>
+                        </div>
+                    </div>
+                    <div class="card-base p-6 rounded-xl shadow-lg text-center flex flex-col justify-center">
+                        <h3 class="text-xl font-bold text-white mb-4"><span class="concept-trigger" data-concept="autopoiese">Autopoiese</span> vs. <span class="concept-trigger" data-concept="alopoiese">Alopoiese</span></h3>
+                         <div class="flex items-center justify-around text-gray-900"><div class="bg-[#4FD1C5] p-6 rounded-full w-28 h-28 flex flex-col items-center justify-center shadow-lg"><h4 class="font-bold">Eu</h4><p class="text-sm">Auto-criação</p></div><div class="text-2xl font-bold text-white">&harr;</div><div class="bg-[#F6AD55] p-6 rounded-lg w-32 shadow-lg"><h4 class="font-bold">Sistema</h4><p class="text-sm">Produz outros</p></div></div>
+                        <p class="text-gray-400 mt-6 text-sm">Encarar a vida como uma luta para se manter um sistema autónomo, que se define a si mesmo, enquanto se interage com sistemas (empresas) que moldam indivíduos para os seus fins.</p>
+                    </div>
+                    <div class="card-base p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-bold text-center text-white mb-4">Aplicar a <span class="concept-trigger" data-concept="teoria-sinal">Teoria do Sinal</span></h3>
+                        <p class="text-gray-300 text-sm mb-4 text-center">Esta teoria explica como superar a falta de informação no mercado. A sua importância é mostrar que as ações de <i class="italic">Jack</i> não são aleatórias, mas "sinais" deliberados para provar o seu valor.</p>
+                        <div class="flow-root"><ul role="list" class="-mb-8">
+                            <li><div class="relative pb-8 interactive-card" onclick="event.stopPropagation(); window.openModal('sinal-1');"><span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-600" aria-hidden="true"></span><div class="relative flex space-x-3 items-center"><div><span class="h-8 w-8 rounded-full bg-[#63B3ED] text-white flex items-center justify-center font-bold">1</span></div><div class="min-w-0 flex-1"><p class="text-sm font-semibold">Candidato de Alto Valor</p></div></div></div></li>
+                            <li><div class="relative pb-8 interactive-card" onclick="event.stopPropagation(); window.openModal('sinal-2');"><span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-600" aria-hidden="true"></span><div class="relative flex space-x-3 items-center"><div><span class="h-8 w-8 rounded-full bg-[#F6AD55] text-gray-900 flex items-center justify-center font-bold">2</span></div><div class="min-w-0 flex-1"><p class="text-sm font-semibold">Enviar um Sinal Custoso</p></div></div></div></li>
+                            <li><div class="relative interactive-card" onclick="event.stopPropagation(); window.openModal('sinal-3');"><div class="relative flex space-x-3 items-center"><div><span class="h-8 w-8 rounded-full bg-[#4FD1C5] text-gray-900 flex items-center justify-center font-bold">3</span></div><div class="min-w-0 flex-1"><p class="text-sm font-semibold">Recetor Percebe o Sinal</p></div></div></div></li>
+                        </ul></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sintese" class="content-section">
+                <div class="card-base p-6 rounded-xl shadow-lg mb-8">
+                     <h2 class="text-2xl font-bold text-center mb-4 text-white">Síntese: Viver na Fronteira do Caos</h2>
+                     <p class="text-gray-300 leading-relaxed text-justify">O perfil de <i class="italic">Jack</i> não se define por traços estáticos, mas por uma tensão criativa. A sua <span class="concept-trigger" data-concept="dialetica">abordagem dialética</span> permite integrar contradições, transformando conflito em crescimento. O seu estado natural é a "<span class="concept-trigger" data-concept="fronteira-caos">fronteira do caos</span>", onde a ordem e a desordem dançam.</p>
+                </div>
+                <div class="card-base p-6 rounded-xl shadow-lg mb-8">
+                    <h3 class="text-xl font-bold text-center text-white mb-4">A Fronteira do Caos</h3>
+                    <div class="flex justify-between items-center text-center font-bold text-gray-900"><div class="w-1/3 bg-[#4FD1C5] p-4 rounded-l-lg">ORDEM</div><div class="w-1/3 bg-gradient-to-r from-[#4FD1C5] via-[#F6AD55] to-[#FBBF24] p-4 text-gray-900">Fronteira (Crescimento)</div><div class="w-1/3 bg-[#FBBF24] p-4 rounded-r-lg">CAOS</div></div>
+                    <div class="flex justify-between text-xs mt-2 text-center px-2 text-gray-400"><div class="w-1/3"><p>Conscienciosidade</p><p>Análise</p></div><div class="w-1/3 text-transparent">.</div><div class="w-1/3"><p>Abertura</p><p>Existencialismo</p></div></div>
+                    <p class="text-gray-400 mt-6 text-sm text-center">Entender este estado de "instabilidade limitada" não como um problema, mas como o habitat natural para o crescimento.</p>
+                </div>
+                
+                 <div class="bg-red-900/20 border border-red-500/30 p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold text-center text-white mb-4">Tabela de Conclusões Principais</h3>
+                    <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-600"><thead class="bg-transparent"><tr class="text-left text-sm font-semibold text-gray-300"><th scope="col" class="py-3.5 pl-4 pr-3 sm:pl-6">Área</th><th scope="col" class="px-3 py-3.5">Inferência</th><th scope="col" class="px-3 py-3.5">Descrição (em termos simples)</th></tr></thead><tbody class="divide-y divide-gray-700"><tr class="text-sm"><td class="whitespace-nowrap py-4 pl-4 pr-3 font-medium text-white sm:pl-6">Profissional</td><td class="whitespace-nowrap px-3 py-4 text-gray-300">Arquiteto Estratégico</td><td class="whitespace-normal px-3 py-4 text-gray-400">Gostar de entender e dominar as regras do mundo profissional para ter sucesso.</td></tr><tr class="text-sm"><td class="whitespace-nowrap py-4 pl-4 pr-3 font-medium text-white sm:pl-6">Cognitivo</td><td class="whitespace-nowrap px-3 py-4 text-gray-300">Mente Analítica e Curiosa</td><td class="whitespace-normal px-3 py-4 text-gray-400">Ter um prazer genuíno em pensar, analisar problemas e aprender coisas novas, tanto por necessidade como por puro interesse.</td></tr><tr class="text-sm"><td class="whitespace-nowrap py-4 pl-4 pr-3 font-medium text-white sm:pl-6">Motivacional</td><td class="whitespace-nowrap px-3 py-4 text-gray-300">Busca pela Autenticidade</td><td class="whitespace-normal px-3 py-4 text-gray-400">O objetivo principal é viver uma vida que faça sentido para si, de acordo com os próprios valores.</td></tr><tr class="text-sm"><td class="whitespace-nowrap py-4 pl-4 pr-3 font-medium text-white sm:pl-6">Personalidade</td><td class="whitespace-nowrap px-3 py-4 text-gray-300">Perfil Assíncrono</td><td class="whitespace-normal px-3 py-4 text-gray-400">O desenvolvimento intelectual ser mais rápido que o socioemocional, o que pode fazer sentir-se "desligado" dos outros.</td></tr><tr class="text-sm"><td class="whitespace-nowrap py-4 pl-4 pr-3 font-medium text-white sm:pl-6">Dinâmica Interna</td><td class="whitespace-nowrap px-3 py-4 text-gray-300">Combustível da Crise</td><td class="whitespace-normal px-3 py-4 text-gray-400">Usar a energia da raiva como um mecanismo de defesa e motor contra os estados de desamparo da depressão.</td></tr><tr class="text-sm"><td class="whitespace-nowrap py-4 pl-4 pr-3 font-medium text-white sm:pl-6">Operação</td><td class="whitespace-nowrap px-3 py-4 text-gray-300">Fronteira do Caos</td><td class="whitespace-normal px-3 py-4 text-gray-400">Sentir-se mais confortável e criativo num ponto de equilíbrio entre ter muita estrutura (ordem) e muita liberdade (caos).</td></tr></tbody></table></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalClose = document.getElementById('modal-close');
+            const dismissNoticeButton = document.getElementById('dismiss-notice');
+            const noticeContainer = document.getElementById('interactive-notice-container');
+
+            const conceptExplanations = {
+                'filosofia': { title: 'Filosofia', body: 'O estudo de questões gerais e fundamentais sobre a existência, conhecimento, valores, razão, mente e linguagem. O seu uso aqui indica uma busca por quadros de referência para compreender o mundo e o eu para além do superficial.' },
+                'psicologia': { title: 'Psicologia', body: 'A ciência que estuda a mente e o comportamento. A sua aplicação neste contexto reflete um esforço para compreender os próprios mecanismos internos, motivações e padrões de personalidade, utilizando teorias científicas como ferramentas de autoanálise.' },
+                'big-five': { title: 'Big Five (Cinco Grandes Fatores)', body: 'É o modelo mais aceite na psicologia da personalidade. Descreve a personalidade humana através de cinco dimensões principais: Abertura à Experiência, Conscienciosidade, Extroversão, Amabilidade e Neuroticismo. O perfil de <i class="italic">Jack</i> destaca-se em Abertura (curiosidade, criatividade) e Conscienciosidade (disciplina, organização).' },
+                'nfc': { title: 'Necessidade de Cognição (NFC)', body: 'Um traço de personalidade que descreve a tendência de um indivíduo para se envolver e sentir prazer em atividades cognitivas que exigem esforço. Pessoas com alta NFC preferem a complexidade e analisam problemas em profundidade.' },
+                'curiosidade': { title: 'Curiosidade Epistêmica', body: 'O desejo de adquirir conhecimento. Divide-se em Tipo-I (Interesse), motivada pelo prazer da descoberta, e Tipo-D (Privação), motivada pela necessidade de eliminar incertezas. O perfil de <i class="italic">Jack</i> demonstra ambas.' },
+                'ma-fe': { title: 'Má-Fé (Sartre)', body: 'Conceito do filósofo Jean-Paul Sartre. Descreve a autoilusão de negar a própria liberdade, reduzindo-se a um papel ou identidade fixa (ex: "eu sou um engenheiro"). A luta contra a má-fé é a luta para se reconhecer como um ser livre e responsável pelas suas escolhas.' },
+                'dasein': { title: 'Dasein (Heidegger)', body: 'Termo central na filosofia de Martin Heidegger, que significa "ser-aí". Refere-se à forma única de ser dos humanos. Viver autenticamente é assumir a responsabilidade pela própria existência, em vez de se conformar passivamente às normas.' },
+                'funcao-transcendente': { title: 'Função Transcendente (Jung)', body: 'Conceito da psicologia de Carl Jung. É um processo mental que une opostos da psique (ex: consciente e inconsciente, pensamento e sentimento). Desta tensão, emerge uma nova síntese que leva ao crescimento da personalidade.' },
+                'moral-pos-convencional': { title: 'Moral Pós-Convencional (Kohlberg)', body: 'O mais alto nível do desenvolvimento moral na teoria de Kohlberg. A moralidade é definida por princípios éticos abstratos e auto-escolhidos (como justiça e direitos humanos), que podem transcender leis e convenções.' },
+                'he': { title: 'Hiperexcitabilidades (Dabrowski)', body: 'Conceito da teoria de Kazimierz Dabrowski. São intensidades inatas e uma resposta elevada a estímulos (intelectual, emocional, etc.). São frequentemente vistas como um potencial para um desenvolvimento profundo.' },
+                'he-chart': { title: 'Hiperexcitabilidades (Dabrowski)', body: 'Conceito da teoria de Kazimierz Dabrowski. São intensidades inatas e uma resposta elevada a estímulos (intelectual, emocional, etc.). São frequentemente vistas como um potencial para um desenvolvimento profundo.' },
+                'assincronia': { title: 'Desenvolvimento Assíncrono', body: 'Um termo usado para descrever o desenvolvimento desigual, onde o avanço cognitivo não é acompanhado pelo desenvolvimento socioemocional. Pode levar a uma experiência interna de estar "desfasado" dos outros.' },
+                'depressao': { title: 'Depressão Maior Recorrente (CID-10: F33.2)', body: 'Um diagnóstico clínico que recontextualiza o perfil. A alta Conscienciosidade pode manifestar-se como perfeccionismo e autocrítica severa, exacerbando sentimentos de inutilidade. A Hiperexcitabilidade Emocional, combinada com a depressão, pode levar a uma dor psíquica intensa e a um risco acrescido. A "raiva como combustível" pode ser vista como um mecanismo de defesa contra o entorpecimento ou a tristeza da depressão, transformando a dor passiva numa energia ativa, ainda que desgastante. O histórico de internações e tentativas de suicídio sublinha a gravidade desta interação entre os traços de personalidade e a doença.'},
+                'campo-bourdieu': { title: 'O "Campo" (Bourdieu)', body: 'Um conceito do sociólogo Pierre Bourdieu. Um "campo" é uma arena social (como o mundo profissional) com regras, hierarquias e formas de competição próprias. Entender o campo é entender o jogo de poder.' },
+                'campo': { title: 'Campo', body: 'É a arena social, como o mercado de trabalho. Tem as suas próprias regras e lógicas de poder que não são óbvias. O objetivo de <i class="italic">Jack</i> é mapear este terreno para poder competir eficazmente.'},
+                'capital': { title: 'Capital', body: 'São os recursos que dão poder dentro do campo. Pode ser económico (dinheiro), cultural (educação, saber-fazer) ou social (contactos). O documento profissional é a ferramenta que <i class="italic">Jack</i> usa para exibir o seu capital acumulado.'},
+                'doxa': { title: 'Doxa', body: 'São as crenças e regras não ditas de um campo, aquilo que todos aceitam como "natural" ou "senso comum". A análise de <i class="italic">Jack</i> sobre "red flags" é uma tentativa de tornar a doxa do recrutamento explícita para poder manipulá-la a seu favor.'},
+                'autopoiese': { title: 'Autopoiese', body: 'Um termo que descreve sistemas que se produzem e mantêm a si mesmos, como as células vivas. É usado aqui como metáfora para um eu que se autodefine e se auto-organiza, um objetivo central de <i class="italic">Jack</i>.' },
+                'alopoiese': { title: 'Alopoiese', body: 'Descreve sistemas que são projetados para produzir algo diferente de si mesmos (ex: uma fábrica que produz carros). Por analogia, uma empresa é um sistema alopoiético que pode tentar moldar os seus funcionários para os seus próprios fins, representando uma ameaça à autopoiese (autenticidade) de <i class="italic">Jack</i>.'},
+                'teoria-sinal': { title: 'Teoria do Sinal (Spence)', body: 'Uma teoria económica sobre mercados com informação assimétrica. Postula que um candidato pode enviar "sinais" credíveis (como um diploma ou um documento profissional bem construído) a um empregador para comunicar informação que não é diretamente observável (como a sua produtividade).' },
+                'sinal-1': { title: 'Passo 1: O Agente de Alto Valor', body: 'O processo começa com o agente (neste caso, <i class="italic">Jack</i>) que se acredita ser de "alta produtividade" ou alto valor, mas essa qualidade é invisível para o empregador.'},
+                'sinal-2': { title: 'Passo 2: Enviar um Sinal Custoso', body: 'Para provar o seu valor, <i class="italic">Jack</i> investe tempo e esforço (um custo) para criar um sinal difícil de imitar por um candidato de baixo valor. O documento profissional meticulosamente otimizado, com métricas e uma narrativa coerente, é esse sinal. O custo é o esforço intelectual da sua preparação.'},
+                'sinal-3': { title: 'Passo 3: Percepção do Sinal', body: 'O recrutador (recetor) vê o sinal de alta qualidade. Como sabe que o sinal foi "caro" de produzir, ele infere que o remetente deve ser de alto valor, separando-o de outros candidatos que enviam sinais "baratos" (documentos genéricos). A análise de <i class="italic">Jack</i> mostra que ele está a construir conscientemente o sinal mais credível possível.'},
+                'dialetica': { title: 'Dialética', body: 'Um método de raciocínio que envolve a justaposição de ideias contraditórias para chegar a uma nova síntese. Para <i class="italic">Jack</i>, significa aceitar e integrar opostos (ex: aceitação e mudança) para alcançar um estado mais equilibrado.' },
+                'fronteira-caos': { title: 'Fronteira do Caos', body: 'Um conceito da teoria da complexidade. É a região entre a ordem rígida e o caos aleatório. Sistemas nesta fronteira têm estabilidade suficiente para manter a sua estrutura, mas também a flexibilidade para se adaptarem e evoluírem. É o estado ótimo para a criatividade.' },
+            };
+
+            function openModal(conceptKey) {
+                const conceptData = conceptExplanations[conceptKey];
+                if (conceptData) {
+                    modalTitle.innerHTML = conceptData.title;
+                    modalBody.innerHTML = conceptData.body;
+                    modalOverlay.style.display = 'flex';
+                }
+            }
+            window.openModal = openModal;
+
+            const setActiveLink = (targetId) => { navLinks.forEach(link => { link.classList.remove('active'); if (link.dataset.target === targetId) { link.classList.add('active'); } }); };
+            const setActiveSection = (targetId) => { contentSections.forEach(section => { section.classList.remove('active'); if (section.id === targetId) { section.classList.add('active'); } }); };
+            
+            navLinks.forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); const targetId = e.currentTarget.dataset.target; setActiveLink(targetId); setActiveSection(targetId); }); });
+            
+            setActiveLink('visao-geral');
+            setActiveSection('visao-geral');
+
+            document.body.addEventListener('click', (e) => {
+                const trigger = e.target.closest('.concept-trigger');
+                if (trigger) {
+                    e.stopPropagation();
+                    const conceptKey = trigger.dataset.concept;
+                    openModal(conceptKey);
+                }
+            });
+            
+            const closeModal = () => { modalOverlay.style.display = 'none'; };
+            modalClose.addEventListener('click', closeModal);
+            modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) { closeModal(); } });
+
+            dismissNoticeButton.addEventListener('click', () => {
+                const notice = noticeContainer.querySelector('.interactive-notice');
+                notice.style.opacity = '0'; notice.style.transform = 'scale(0.9)';
+                setTimeout(() => { noticeContainer.remove(); }, 500);
+            });
+
+            const chartLabelColor = '#A0AEC0';
+            const gridColor = 'rgba(160, 174, 192, 0.2)';
+
+            const createBigFiveChart = () => {
+                const ctx = document.getElementById('bigFiveChart')?.getContext('2d');
+                if (!ctx) return;
+                new Chart(ctx, { type: 'radar', data: { labels: ['Abertura', 'Conscienciosidade', 'Extroversão', 'Amabilidade', 'Neuroticismo'], datasets: [{ label: 'Pontuação Inferida', data: [95, 90, 60, 65, 40], backgroundColor: 'rgba(99, 179, 237, 0.2)', borderColor: '#63B3ED', pointBackgroundColor: '#63B3ED', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: '#63B3ED' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true, max: 100, grid: { color: gridColor }, angleLines: { color: gridColor }, pointLabels: { font: { size: 12 }, color: chartLabelColor } } }, plugins: { legend: { display: false } } } });
+            };
+
+            const createOEChart = () => {
+                const ctx = document.getElementById('oeChart')?.getContext('2d');
+                if (!ctx) return;
+                new Chart(ctx, { type: 'polarArea', data: { labels: ['Intelectual', 'Emocional', 'Imaginativa', 'Psicomotora', 'Sensual'], datasets: [{ label: 'Intensidade da HE', data: [90, 85, 70, 40, 50], backgroundColor: ['#4FD1C5', '#F6AD55', 'rgba(79, 209, 197, 0.7)', 'rgba(246, 173, 85, 0.7)', 'rgba(251, 191, 36, 0.7)'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true, max: 100, grid: { color: gridColor }, ticks: { display: false, backdropColor: 'transparent' } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 15, font: { size: 12 }, color: chartLabelColor } } } } });
+            };
+
+            const createCuriosityChart = () => {
+                const ctx = document.getElementById('curiosityChart')?.getContext('2d');
+                if (!ctx) return;
+                new Chart(ctx, { type: 'bar', data: { labels: ['Curiosidade'], datasets: [{ label: 'Interesse (Desejo)', data: [85], backgroundColor: '#4FD1C5' }, { label: 'Privação (Necessidade)', data: [90], backgroundColor: '#F6AD55' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, max: 100, display: false, grid: { display: false } }, y: { display: false, grid: { display: false } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 15, font: { size: 12 }, color: chartLabelColor } } } } });
+            };
+
+            createBigFiveChart();
+            createOEChart();
+            createCuriosityChart();
+        });
+    </script>
+
+</body>
+</html>
